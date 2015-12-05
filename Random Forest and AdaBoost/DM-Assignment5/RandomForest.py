@@ -1,8 +1,7 @@
 import numpy
-import math
-import random
-from numpy import sort
+import time
 import DecisionTree as DT
+
 
 def fileinput(filename):
     f = open(filename,'r')
@@ -48,12 +47,12 @@ file = "german-assignment5.txt"
 
 #main function entry
 print "fileinput...        ",
-[x,y,t] = fileinput(file)
+[totalx,totaly,t] = fileinput(file)
 print "[done]"
 
 name1 = -9
 name2 = -9
-for tag in y:
+for tag in totaly:
     if name1 == -9:
         name1 = tag
     else:
@@ -78,59 +77,71 @@ print error,dataN,shit
 """
 
 
+xsplit = []
+ysplit = []
+for i in range(10):
+    xsplit.append( totalx[(int)(dataN*i/10):(int)(dataN*(i+1)/10)] )
+    ysplit.append( totaly[(int)(dataN*i/10):(int)(dataN*(i+1)/10)] )
 
 
 forest = []
 treeN = 10
 #samplefN = int(math.log(featureN,2)) + 1
-samplefN = int(featureN * 0.4)
-sampledataN = int(dataN)
-
-for i in range(treeN):
-    samplex = []
-    sampley = []
-    samplet = []
-    samplef = numpy.sort(random.sample(range(0,featureN),samplefN))
-    
-    for j in range(samplefN):
-        samplet.append(t[samplef[j]])
-    
-    for j in range(sampledataN):
-        rand = numpy.random.randint(0,dataN)
-        xx = []
-        for k in range(samplefN):
-            xx.append(x[j][samplef[k]])
-        samplex.append(xx)
-        sampley.append(y[j])
-    
-    Tree = DT.DecisionTree(samplex,sampley,samplet,samplef)
-    forest.append(Tree)
-    #print Tree.Tree
-
-error = 0
+#samplefN = int(featureN * 0.4)
+sampledataN = int(dataN * 0.9)
+totalerror = 0
+totalvaladition = 0
 shit = 0
-for i in range(dataN):
-    count1 = 0
-    count2 = 0
-    for j in range(treeN):
-        xx = []
-        tt = []
-        for k in range(len(forest[j].samplef)):
-            xx.append(x[i][forest[j].samplef[k]])
-            tt.append(t[forest[j].samplef[k]])
-        yy = forest[j].predict(forest[j].Tree,xx,tt)
-        if yy == name1:
-            count1 += 1
+for cross in range(10):
+    x = []
+    y = []
+    validationx = []
+    validationy = []
+    for i in range(10):
+        if i == cross:
+            validationx.extend(xsplit[i])
+            validationy.extend(ysplit[i])
         else:
-            count2 += 1
-    yy = 999
-    if count1 > count2:
-        yy = name1
-    else:
-        yy = name2
+            x.extend(xsplit[i])
+            y.extend(ysplit[i])
+    for i in range(treeN):
+        samplex = []
+        sampley = []
+    
+        for j in range(sampledataN):
+            rand = numpy.random.randint(0,sampledataN)
+            samplex.append(x[rand])
+            sampley.append(y[rand])
+    
+        Tree = DT.DecisionTree(samplex,sampley,t)
+        forest.append(Tree)
+        #print Tree.Tree
+
+    error = 0
+    for i in range(len(validationx)):
+        count1 = 0
+        count2 = 0
+        for j in range(treeN):
+            yy = forest[j].predict(forest[j].Tree,validationx[i],t)
+            if yy == 999:
+                continue
+            if yy == name1:
+                count1 += 1
+            else:
+                count2 += 1
+
+        if count1 + count2 == 0:
+            shit += 1
+        yy = 999
+        if count1 > count2:
+            yy = name1
+        else:
+            yy = name2
         
-    if yy != y[i]:
-        error += 1
-    if yy == 999:
-        shit += 1
-print error,dataN,float(error)/dataN,shit
+        if yy != validationy[i]:
+            error += 1
+    #print error,len(validationx),shit
+    totalerror += error
+    totalvaladition += len(validationx)
+
+print totalerror,totalvaladition,totalerror/float(totalvaladition),shit

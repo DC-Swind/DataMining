@@ -329,7 +329,7 @@ for i in range(dataN):
         error += 1
     if yy == 999:
         shit += 1
-print "unpruning on full set: ",error,dataN,shit
+print error,dataN,shit
 
 error = 0
 shit = 0
@@ -339,7 +339,7 @@ for i in range(dataN):
         error += 1
     if yy == 999:
         shit += 1
-print "pruning on full set: ",error,dataN,shit
+print error,dataN,shit
 
 error = 0
 shit = 0
@@ -350,7 +350,7 @@ for i in range(validxn):
         error += 1
     if yy == 999:
         shit += 1
-print "unpruning on validition set: ",error,validxn,shit
+print error,dataN,shit
 
 error = 0
 shit = 0
@@ -360,7 +360,7 @@ for i in range(validxn):
         error += 1
     if yy == 999:
         shit += 1
-print "pruning on validition set: ",error,validxn,shit
+print error,dataN,shit
       
 """
 print "training...        ",

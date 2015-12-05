@@ -1,16 +1,15 @@
 import numpy
 import math
-import random
 import time
-from numpy import sort
 import copy
 from statsmodels.sandbox.regression.try_treewalker import tree
 
 class DecisionTree:
     
-    def __init__(self,x,y,t):
+    def __init__(self,x,y,t,f):
         numpy.random.seed(seed=1)  
         self.NforNumerical = 5
+        self.samplef = f
         self.featureN = len(t)
         
         self.name1 = -9
@@ -93,11 +92,7 @@ class DecisionTree:
         initEntropy = self.calcEntropy(y,3)
         maxGain = 0.0
         bestf = -1
-        
-        samplefN = int(math.sqrt(fN))   #it is p , can be 1 + log(fn)
-        samplef = numpy.sort(random.sample(range(0,fN),samplefN))
-        
-        for i in samplef:
+        for i in range(fN):
             if (t[i] == 1): #discrete
                 fV = [data[i] for data in x]
                 fVType = set(fV)
@@ -177,13 +172,11 @@ class DecisionTree:
                 try:
                     tree = tree[fName][data[findex]]
                 except:
-                    """
                     rand = numpy.random.randint(0,2)
                     if rand == 0:
                         return self.name1
                     else:
                         return self.name2
-                    """
                     return 999
             else: #numerical
                 minv = 0.0
@@ -194,13 +187,11 @@ class DecisionTree:
                         try:
                             tree = tree[fName][j]
                         except:
-                            """
                             rand = numpy.random.randint(0,2)
                             if rand == 0:
                                 return self.name1
                             else:
                                 return self.name2
-                            """
                             return 999
                         break
             datatmp = data[:findex]
