@@ -72,28 +72,33 @@ def splitSet_numerical(x,y,t,feature,lowerBound,upperBound):
 def featureSelect(x,y,t):
     fN = len(x[0])
     initEntropy = calcEntropy(y,3)
-    maxGain = 0.0
+    maxGainRatio = 0.0
     bestf = -1
     for i in range(fN):
+        Entropy = 0.0
+        H = 0.0
         if (t[i] == 1): #discrete
             fV = [data[i] for data in x]
             fVType = set(fV)
-            Entropy = 0.0
             for Vtype in fVType:
                 [subSetx,subSety,subSett] = splitSet_discrete(x,y,t,i,Vtype)
                 p = float(len(subSetx)) / float(len(x))
                 Entropy += p * calcEntropy(subSety,2)
+                H -= p * math.log(p,2)
         else: #numerical
             minv = 0.0
             maxv = 1.0
-            Entropy = 0.0
             delta = (maxv - minv) / NforNumerical + 0.0001
             for j in range(NforNumerical):
                 [subSetx,subSety,subSett] = splitSet_numerical(x,y,t,i,minv+delta*j,minv+delta*(j+1))
                 p = float(len(subSetx)) / float(len(x))
-                Entropy += p * calcEntropy(subSety,1)       
-        if (initEntropy - Entropy >= maxGain):
-                maxGain = initEntropy - Entropy
+                Entropy += p * calcEntropy(subSety,1)
+                if p != 0:
+                    H -= p * math.log(p,2)
+        if H == 0:
+            H = 0.000001       
+        if ((initEntropy - Entropy)/H >= maxGainRatio):
+                maxGainRatio = (initEntropy - Entropy)/ H
                 bestf = i
     return bestf
 
@@ -140,7 +145,7 @@ def generateTree(x,y,t):
 
     return Tree
 
-def predict(tree,d):
+def predict(tree,d,t):
     data = [item for item in d]
     tag = [item for item in t]
     while isinstance(tree, dict):
@@ -266,14 +271,18 @@ def pruning(Tree,x,y,t):
         
     return newTree,len(x)-totalerror,totalerror
 
-
-
-
-
-
+def analysisdata(x,y,t):
+    for i in range(featureN):
+        if t[i] == 0:
+            S = {}
+            for data in x:
+                S.setdefault(data[i])
+            if len(S) <= 5:
+                t[i] = 1
+    return t
 #setting 
 numpy.random.seed(seed=1)  
-NforNumerical = 5
+NforNumerical = 10
 
 """
 
@@ -297,6 +306,8 @@ print "fileinput...        ",
 #[tx,ty] = fileinput(file+"testing.txt")
 print "[done]"
 
+#t = analysisdata(x,y,t)
+
 name1 = -9
 name2 = -9
 for tag in y:
@@ -307,6 +318,75 @@ for tag in y:
             name2 = tag
             break
 
+
+xsplit = []
+ysplit = []
+for i in range(10):
+    xsplit.append( x[(int)(dataN*i/10):(int)(dataN*(i+1)/10)] )
+    ysplit.append( y[(int)(dataN*i/10):(int)(dataN*(i+1)/10)] )
+
+
+mean = 0
+StandardDeviation = 0
+Accuray = [0.0] * 10
+
+for cross in range(10):
+    x = []
+    y = []
+    validationx = []
+    validationy = []
+    for i in range(10):
+        if i == cross:
+            validationx.extend(xsplit[i])
+            validationy.extend(ysplit[i])
+        else:
+            x.extend(xsplit[i])
+            y.extend(ysplit[i])
+    
+    
+    #pruning, 80% for train, 20% for pruning
+    """
+    p80 = 1 - len(x) / 4
+    trainx = x[:p80]
+    trainy = y[:p80]
+    validx = x[p80:]
+    validy = y[p80:]
+    Tree = generateTree(trainx,trainy,t)
+    [Tree,aa,bb] = pruning(Tree,validx,validy,t)
+    """
+    
+    #without pruning
+    Tree = generateTree(x, y, t)
+    
+    error = 0
+    for i in range(len(validationx)):
+        yy = predict(Tree,validationx[i], t)
+        if yy != validationy[i]:
+            error += 1
+    #print error,len(validationx),shit
+    Accuray[cross] = 1 - float(error) / len(validationx)
+
+for i in range(10):
+    mean += Accuray[i]
+mean = mean / 10
+for i in range(10):
+    StandardDeviation += (Accuray[i] - mean) * (Accuray[i] - mean)
+StandardDeviation = math.sqrt(StandardDeviation / 10)
+print "mean: ",mean,"StandardDeviation: ",StandardDeviation
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
 p80 = 1 - dataN / 4
 trainx = x[:p80]
 trainy = y[:p80]
@@ -361,21 +441,5 @@ for i in range(validxn):
     if yy == 999:
         shit += 1
 print "pruning on validition set: ",error,validxn,shit
-      
-"""
-print "training...        ",
-#[w,figurex,figurey] = pegasos_hinge(x, lamda, 5 * dataN)
-[w,figurex,figurey] = pegasos_log(x,lamda, 5 * dataN)
-print "[done]"
-
-arix = [0.1] * 10
-for i in range(1,11):
-    arix[i-1] = arix[i-1] * i
-plt.plot(arix,figurey)
-plt.xlabel('iterater times(percent of T)')
-plt.ylabel('error rate')
-plt.ylim(0,1)
-plt.show()
-print "program is done."
-print "figure-y: ",figurey
+    
 """

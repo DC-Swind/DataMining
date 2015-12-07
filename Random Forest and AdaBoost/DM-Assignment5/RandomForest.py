@@ -1,5 +1,6 @@
 import numpy
 import time
+import math
 import DecisionTree as DT
 
 
@@ -23,14 +24,55 @@ def fileinput(filename):
     data = d
     return data,datatag,t
 
+def train(x,y,t):
+    Forest = []
+    sampledataN = len(y)
+    for i in range(treeN):
+        samplex = []
+        sampley = []
+        for j in range(sampledataN):
+            rand = numpy.random.randint(0,sampledataN)
+            samplex.append(x[rand])
+            sampley.append(y[rand])
+    
+        Tree = DT.DecisionTree(samplex,sampley,t)
+        Forest.append(Tree)
+        #print Tree.Tree
+    return Forest
 
+def predict(forest,x,t):
+    count1 = 0
+    count2 = 0
+    for j in range(treeN):
+        yy = forest[j].predict(forest[j].Tree,x,t)
+        if yy == 999:
+            continue
+        if yy == name1:
+            count1 += 1
+        else:
+            count2 += 1
+    yy = 999
+    if count1 > count2:
+        yy = name1
+    else:
+        yy = name2
+        
+    return yy
 
+def analysisdata(x,y,t):
+    for i in range(featureN):
+        if t[i] == 0:
+            S = {}
+            for data in x:
+                S.setdefault(data[i])
+            if len(S) <= 5:
+                t[i] = 1
+    return t
+
+ 
 #setting 
 numpy.random.seed(seed=1)  
-NforNumerical = 5
-
 """
-
 #dataset1
 dataN = 277
 featureN = 9
@@ -44,11 +86,25 @@ featureN = 24
 file = "german-assignment5.txt"
 
 
+treeN = 20
+
 
 #main function entry
 print "fileinput...        ",
 [totalx,totaly,t] = fileinput(file)
 print "[done]"
+
+#t = analysisdata(totalx, totaly, t)
+
+for i in range(featureN):
+    if t[i] == 0:
+        S = {}
+        for data in totalx:
+            S.setdefault(data[i])
+        if len(S) <=5:
+            t[i] = 1
+    
+
 
 name1 = -9
 name2 = -9
@@ -60,22 +116,6 @@ for tag in totaly:
             name2 = tag
             break
 
-"""
-Tree = DT.DecisionTree(x,y,t)
-print Tree.Tree
-
-error = 0
-shit = 0
-for i in range(dataN):
-    yy = Tree.predict(Tree.Tree,x[i],t)
-    if yy != y[i]:
-        error += 1
-    if yy == 999:
-        shit += 1
-print error,dataN,shit
-
-"""
-
 
 xsplit = []
 ysplit = []
@@ -84,14 +124,11 @@ for i in range(10):
     ysplit.append( totaly[(int)(dataN*i/10):(int)(dataN*(i+1)/10)] )
 
 
-forest = []
-treeN = 10
-#samplefN = int(math.log(featureN,2)) + 1
-#samplefN = int(featureN * 0.4)
-sampledataN = int(dataN * 0.9)
-totalerror = 0
-totalvaladition = 0
-shit = 0
+
+mean = 0
+StandardDeviation = 0
+Accuray = [0.0] * 10
+
 for cross in range(10):
     x = []
     y = []
@@ -104,44 +141,21 @@ for cross in range(10):
         else:
             x.extend(xsplit[i])
             y.extend(ysplit[i])
-    for i in range(treeN):
-        samplex = []
-        sampley = []
     
-        for j in range(sampledataN):
-            rand = numpy.random.randint(0,sampledataN)
-            samplex.append(x[rand])
-            sampley.append(y[rand])
+    forest = train(x, y, t)
     
-        Tree = DT.DecisionTree(samplex,sampley,t)
-        forest.append(Tree)
-        #print Tree.Tree
-
     error = 0
     for i in range(len(validationx)):
-        count1 = 0
-        count2 = 0
-        for j in range(treeN):
-            yy = forest[j].predict(forest[j].Tree,validationx[i],t)
-            if yy == 999:
-                continue
-            if yy == name1:
-                count1 += 1
-            else:
-                count2 += 1
-
-        if count1 + count2 == 0:
-            shit += 1
-        yy = 999
-        if count1 > count2:
-            yy = name1
-        else:
-            yy = name2
-        
+        yy = predict(forest, validationx[i], t)
         if yy != validationy[i]:
             error += 1
     #print error,len(validationx),shit
-    totalerror += error
-    totalvaladition += len(validationx)
+    Accuray[cross] = 1 - float(error) / len(validationx)
 
-print totalerror,totalvaladition,totalerror/float(totalvaladition),shit
+for i in range(10):
+    mean += Accuray[i]
+mean = mean / 10
+for i in range(10):
+    StandardDeviation += (Accuray[i] - mean) * (Accuray[i] - mean)
+StandardDeviation = math.sqrt(StandardDeviation / 10)
+print "mean: ",mean,"StandardDeviation: ",StandardDeviation

@@ -86,11 +86,27 @@ def train(x,y,t,T):
     for i in range(WeakerN):
         alpha[i] = alpha[i]/alphasum
     return G,alpha   
+
+def predict(G,alpha,x,t):
+    yy = 0
+    for j in range(WeakerN):
+        yj = G[j].predict(G[j].Tree,x,t)
+        if yj == 999:
+            continue
+        else:
+            yy += alpha[j] * yj
+    
+    if yy > (name1 + name2)/2.0:
+        yy = name2
+    else:
+        yy = name1
+    return yy
+
+
 #setting 
 numpy.random.seed(seed=1)  
 
-
-
+"""
 #dataset1
 dataN = 277
 featureN = 9
@@ -101,9 +117,9 @@ file = "breast-cancer-assignment5.txt"
 dataN = 1000
 featureN = 24
 file = "german-assignment5.txt"
-"""
 
-WeakerN = 100
+
+WeakerN = 20
 
 #main function entry
 print "fileinput...        ",
@@ -140,8 +156,10 @@ for i in range(dataN):
 """
 
 
-totalerror = 0
-totalvaladitionN = 0
+mean = 0
+StandardDeviation = 0
+Accuray = [0.0] * 10
+
 for cross in range(10):
     x = []
     y = []
@@ -159,27 +177,15 @@ for cross in range(10):
     
     error = 0
     for i in range(len(validationx)):
-        yy = 0
-        shit = 0
-        for j in range(WeakerN):
-            yj = G[j].predict(G[j].Tree,validationx[i],t)
-            if yj == 999:
-                shit += 1
-                continue
-            else:
-                yy += alpha[j] * yj
-        if shit == WeakerN:
-            print "shit"
-            time.sleep(1)
-        if yy > (name1 + name2)/2.0:
-            yy = name2
-        else:
-            yy = name1
+        yy = predict(G, alpha, validationx[i], t)
         if yy != validationy[i]:
             error += 1
-    totalerror += error
-    totalvaladitionN += len(validationx)
-    print "cross ", cross," ",error/float(len(validationx))
+    Accuray[cross] = 1 - float(error) / len(validationx)
     
-print "over"
-print totalerror,totalvaladitionN,totalerror/float(totalvaladitionN)
+for i in range(10):
+    mean += Accuray[i]
+mean = mean / 10
+for i in range(10):
+    StandardDeviation += (Accuray[i] - mean) * (Accuray[i] - mean)
+StandardDeviation = math.sqrt(StandardDeviation / 10)
+print "mean: ",mean,"StandardDeviation: ",StandardDeviation

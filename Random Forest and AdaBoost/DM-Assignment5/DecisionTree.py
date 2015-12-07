@@ -4,7 +4,6 @@ import random
 import time
 from numpy import sort
 import copy
-from statsmodels.sandbox.regression.try_treewalker import tree
 
 class DecisionTree:
     
@@ -91,32 +90,37 @@ class DecisionTree:
     def featureSelect(self,x,y,t):
         fN = len(x[0])
         initEntropy = self.calcEntropy(y,3)
-        maxGain = 0.0
+        maxGainRatio = 0.0
         bestf = -1
         
         samplefN = int(math.sqrt(fN))   #it is p , can be 1 + log(fn)
         samplef = numpy.sort(random.sample(range(0,fN),samplefN))
         
         for i in samplef:
+            Entropy = 0.0
+            H = 0.0
             if (t[i] == 1): #discrete
                 fV = [data[i] for data in x]
                 fVType = set(fV)
-                Entropy = 0.0
                 for Vtype in fVType:
                     [subSetx,subSety,subSett] = self.splitSet_discrete(x,y,t,i,Vtype)
                     p = float(len(subSetx)) / float(len(x))
                     Entropy += p * self.calcEntropy(subSety,2)
+                    H -= p * math.log(p,2)
             else: #numerical
                 minv = 0.0
                 maxv = 1.0
-                Entropy = 0.0
                 delta = (maxv - minv) / self.NforNumerical + 0.0001
                 for j in range(self.NforNumerical):
                     [subSetx,subSety,subSett] = self.splitSet_numerical(x,y,t,i,minv+delta*j,minv+delta*(j+1))
                     p = float(len(subSetx)) / float(len(x))
-                    Entropy += p * self.calcEntropy(subSety,1)       
-            if (initEntropy - Entropy >= maxGain):
-                maxGain = initEntropy - Entropy
+                    Entropy += p * self.calcEntropy(subSety,1)
+                    if p != 0:
+                        H -= p * math.log(p,2)
+            if H == 0:
+                H = 0.00000001       
+            if ((initEntropy - Entropy)/H >= maxGainRatio):
+                maxGainRatio = (initEntropy - Entropy)/H
                 bestf = i
         return bestf
 
