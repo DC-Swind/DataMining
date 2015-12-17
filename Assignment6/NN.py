@@ -88,16 +88,9 @@ class FeedfowardNN:
         #print Y1[0]
         #print Y1[1]
         Z2 = self.layer2.forward(Y1)
-        #print Z2[0]
-        #print Z2[1]
         Y2 = self.tanh.forward(Z2)
-        #print Y2[0]
         Z3 = self.layer3.forward(Y1)
-        #print Z3[0]
-        #print Z3[1]
         Y = self.classifier.forward(Z3) 
-        
-        #time.sleep(3)
         return Z1, Y1, Z2, Y2, Z3, Y
      
     
@@ -161,7 +154,7 @@ class FeedfowardNN:
 #read file
 
 cputime = time.time()
-x,y = readfile("strain.csv")
+x,y = readfile("train.csv")
 print "read train file",time.time() - cputime,"s"
 cputime = time.time()
 dataN = len(x)
@@ -175,7 +168,7 @@ for i in range(dataN):
     Y[i][y[i] - 1] = 1
 
 
-X_train = np.matrix(x)
+X_train = x
 T_train = Y
 nb_train = dataN
 
@@ -184,13 +177,13 @@ nb_train = dataN
 
 # Set hyper-parameters
 lmbd = 0.5  # Rmsprop lambda
-learning_rate = 0.05  # Learning rate
+learning_rate = 0.0005  # Learning rate
 momentum_term = 0.80  # Momentum term
 eps = 1e-6  # Numerical stability term to prevent division by zero
 mb_size = 100  # Size of the minibatches (number of samples)
 
 # Create the network
-nb_of_states = 10  # Number of states in the recurrent layer
+nb_of_states = 200  # Number of states in the recurrent layer
 FNN = FeedfowardNN(featureN,8,nb_of_states)
 
 # Set the initial parameters
@@ -207,13 +200,16 @@ for i in range(nb_of_states):
     yyy.append([])
 x = []
 index = 0
+
 # Iterate over some iterations
-for i in range(5):
+for i in range(1):
     # Iterate over all the minibatches
     for mb in range(nb_train/mb_size):
         X_mb = X_train[mb * mb_size:min((mb + 1) * mb_size,dataN-1),:]  # Input minibatch
         T_mb = T_train[mb * mb_size:min((mb + 1) * mb_size,dataN-1),:]  # Target minibatch
         V_tmp = [v * momentum_term for v in Vs]
+        
+
         # Update each parameters according to previous gradient
         for pIdx, P in enumerate(FNN.get_params_iter()):
             P += V_tmp[pIdx]
@@ -228,6 +224,9 @@ for i in range(5):
             # Update the momentum velocity
             Vs[pIdx] = V_tmp[pIdx] - pGradNorm     
             P -= pGradNorm   # Update the parameter
+        
+        #print FNN.layer1.W - W1
+
         
         """
         for i in range(min(10,nb_of_states)):
@@ -311,7 +310,7 @@ plt.show()
 
 
 """    Testing    """
-
+"""
 #read test file
 ID,x = readtestfile("test.csv")
 print "read test file",time.time() - cputime,"s"
@@ -325,11 +324,22 @@ lenx = len(x)
 
 X = np.matrix(x)
 
-Y = FNN.getOutput(X_train)
+Y = FNN.getOutput(X)
 
 
 for i in range(dataN):
-    print Y[i],y[i]
-    time.sleep(3)
-
+    out = softmax(Y[i])
+    writer.writerow([ID[i],out])
 csvfile.close()
+"""
+
+Y = FNN.getOutput(X_train)
+right = 0
+for i in range(dataN):
+    out = softmax(Y[i])
+    if out == y[i]:
+        right += 1
+        
+print right
+
+
