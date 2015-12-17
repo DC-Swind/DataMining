@@ -52,4 +52,8 @@ for i in range(8):
     
     w = pegasos_lr(x,yy,lamda, 5 * dataN)
     right,error,callright,callerror = test(x,yy,w)
+<<<<<<< HEAD
     print right,error,callright,callerror
+=======
+    print right,error,callright,callerror
+>>>>>>> origin/master

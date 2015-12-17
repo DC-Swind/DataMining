@@ -4,6 +4,7 @@ import time
 import numpy
 
 
+<<<<<<< HEAD
 def checkfeature(data,fname):
     rt = []
     for featurei in range(len(data[0])):
@@ -27,6 +28,36 @@ def checkfeature(data,fname):
             #print len(vset)
             rt.append(0)
     return rt
+=======
+def checkfeature(data,fname,featurei):
+    ftype = type(data[0][featurei])
+    print fname[featurei],ftype,
+    if ftype == type(1):
+        maxv = 0
+        minv = 9999
+        for d in data:
+            if d[featurei] > maxv:
+                maxv = d[featurei]
+            if d[featurei] < minv:
+                minv = d[featurei]
+        print maxv,minv
+    if ftype == type(1.1):
+        maxv = 0.0
+        minv = 9999.0
+        for d in data:
+            if d[featurei] > maxv:
+                maxv = d[featurei]
+            if d[featurei] < minv:
+                minv = d[featurei]
+        print maxv,minv
+    if ftype == type("str"):
+        v = []
+        for d in data:
+            v.append(d[featurei])
+        vset = set(v)
+        print len(vset)
+    return 0
+>>>>>>> origin/master
 def readfile(filename):
     discreteSet = ["Medical_History_1", "Medical_History_15", "Medical_History_24", "Medical_History_32"]
     for i in range(48):
@@ -35,8 +66,11 @@ def readfile(filename):
     continuesSet = ["Product_Info_4", "Ins_Age", "Ht", "Wt", "BMI", "Employment_Info_1", "Employment_Info_4", "Employment_Info_6", "Insurance_History_5", "Family_Hist_2", "Family_Hist_3", "Family_Hist_4", "Family_Hist_5"]
     continuesSet.extend(["Medical_History_2","Medical_History_10"])
     
+<<<<<<< HEAD
     missvalue = ['Family_Hist_3', 'Family_Hist_2', 'Medical_History_15', 'Family_Hist_5', 'Medical_History_10', 'Family_Hist_4', 'Medical_History_32', 'Medical_History_24', 'Medical_History_1', 'Employment_Info_4', 'Employment_Info_6', 'Employment_Info_1', 'Insurance_History_5']
     
+=======
+>>>>>>> origin/master
     print "start reading file:",filename
     csvfile = file(os.path.join(os.getcwd(), filename),"rb")
     reader = csv.reader(csvfile)
@@ -44,7 +78,10 @@ def readfile(filename):
     dataN = 0
     featureN = 0
     fname = []
+<<<<<<< HEAD
     set = {}
+=======
+>>>>>>> origin/master
     for line in reader:
         if line[0] == "Id":
             fname.extend( line )
@@ -54,6 +91,7 @@ def readfile(filename):
             featureN = len(line)
         d = []
         for i in range(featureN):
+<<<<<<< HEAD
             """
             if fname[i] in missvalue:
                 d.append(0)
@@ -63,13 +101,21 @@ def readfile(filename):
                 if line[i] == "":
                     d.append(-1)
                     set[fname[i]] = 1
+=======
+            if fname[i] in discreteSet:
+                if line[i] == "":
+                    d.append(-1)
+>>>>>>> origin/master
                     continue
                 d.append(int(line[i]))
                 continue
             if fname[i] in continuesSet:
                 if line[i] == "":
                     d.append(-1.0)
+<<<<<<< HEAD
                     set[fname[i]] = 1
+=======
+>>>>>>> origin/master
                     continue
                 try:
                     d.append(float(line[i]))
@@ -83,6 +129,7 @@ def readfile(filename):
             d.append(line[i])
         data.append(d)
     #print "dataN:",dataN," featureN:",featureN
+<<<<<<< HEAD
     print set
     
     maxv = checkfeature(data,fname)
@@ -174,6 +221,23 @@ def readtestfile(filename):
 
 
 
+=======
+    
+    #for i in range(featureN):
+    #    checkfeature(data,fname,i)
+    
+    AA = []
+    t = []
+    for d in data:
+        dd = []
+        for i in range(featureN-2):
+            dd.append(float(d[i+1]))
+        AA.append(dd)
+        t.append(int(d[featureN-1]))
+    A = numpy.matrix(AA)
+    
+    return A,t
+>>>>>>> origin/master
 # main entry
 """
 a = [1,2,3,4,5,6,7,8,9]
