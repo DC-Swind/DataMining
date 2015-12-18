@@ -95,11 +95,9 @@ class FeedfowardNN:
         gX, gW1, gB1 = self.layer1.backward(X, gZ1)
         
         return gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1
-        
     
     def getOutput(self, X):
         Z1, Y1, Z2, Y = self.forward(X)
-        
         return Y  # Only return the output.
     
     def getBinaryOutput(self, X):
@@ -108,7 +106,6 @@ class FeedfowardNN:
     def getParamGrads(self, X, T):
         """Return the gradients with respect to input X and target T as a list.
         The list has the same order as the get_params_iter iterator."""
-        
         Z1, Y1, Z2, Y = self.forward(X)
         gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z2, Y1, Z1, T)
         return [g for g in itertools.chain(
@@ -116,7 +113,6 @@ class FeedfowardNN:
                 np.nditer(gB2),
                 np.nditer(gW1),
                 np.nditer(gB1))]
-        
         
     def cost(self, Y, T):
         """Return the cost of input X w.r.t. targets T."""
@@ -126,7 +122,6 @@ class FeedfowardNN:
         """Return an iterator over the parameters.
         The iterator has the same order as get_params_grad.
         The elements returned by the iterator are editable in-place."""
-        
         return itertools.chain(
             np.nditer(self.layer2.W, op_flags=['readwrite']),
             np.nditer(self.layer2.b, op_flags=['readwrite']),
@@ -138,8 +133,8 @@ class FeedfowardNN3:
     def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
         """Initialize the network layers."""
         self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
-        self.layer2 = Linearlayer(nb_of_states, nb_of_states)  # Hidden layer
-        self.layer3 = Linearlayer(nb_of_states, nb_of_outputs)
+        self.layer2 = Linearlayer(nb_of_states, nb_of_states/2)  # Hidden layer
+        self.layer3 = Linearlayer(nb_of_states/2, nb_of_outputs)
         self.tanh = TanH()  #no-linear function
         self.classifier = Sigmoid()  # Sigmoid output as classifier
         
@@ -151,7 +146,6 @@ class FeedfowardNN3:
         Z3 = self.layer3.forward(Y2)
         Y = self.classifier.forward(Z3) 
         return Z1, Y1, Z2, Y2, Z3, Y
-     
     
     def backward(self, X, Y, Z3, Y2, Z2, Y1, Z1, T):
         gZ3 = self.classifier.backward(Y, T)
@@ -162,11 +156,9 @@ class FeedfowardNN3:
         gX, gW1, gB1 = self.layer1.backward(X, gZ1)
         
         return gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1
-        
     
     def getOutput(self, X):
         Z1, Y1, Z2, Y2, Z3, Y = self.forward(X)
-        
         return Y  # Only return the output.
     
     def getBinaryOutput(self, X):
@@ -175,7 +167,6 @@ class FeedfowardNN3:
     def getParamGrads(self, X, T):
         """Return the gradients with respect to input X and target T as a list.
         The list has the same order as the get_params_iter iterator."""
-        
         Z1, Y1, Z2, Y2, Z3, Y = self.forward(X)
         gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z3, Y2, Z2, Y1, Z1, T)
         return [g for g in itertools.chain(
@@ -195,7 +186,6 @@ class FeedfowardNN3:
         """Return an iterator over the parameters.
         The iterator has the same order as get_params_grad.
         The elements returned by the iterator are editable in-place."""
-        
         return itertools.chain(
             np.nditer(self.layer3.W, op_flags=['readwrite']),
             np.nditer(self.layer3.b, op_flags=['readwrite']),
@@ -212,11 +202,11 @@ def training(X_train,T_train,nb_train):
     learning_rate = 0.0001  # Learning rate
     momentum_term = 0.80  # Momentum term
     eps = 1e-12  # Numerical stability term to prevent division by zero
-    mb_size = 100  # Size of the minibatches (number of samples)
+    mb_size = 128  # Size of the minibatches (number of samples)
 
     # Create the network
-    nb_of_states = 100  # Number of states in the recurrent layer
-    FNN = FeedfowardNN3(featureN,8,nb_of_states)
+    nb_of_states = 128  # Number of states in the recurrent layer
+    FNN = FeedfowardNN(featureN,8,nb_of_states)
 
     # Set the initial parameters
     nbParameters =  sum(1 for _ in FNN.get_params_iter())  # Number of parameters in the network
@@ -280,7 +270,6 @@ def training(X_train,T_train,nb_train):
 
 """    Entry    """
 #read file
-
 cputime = time.time()
 x,y = readfile("train.csv")
 print "read train file",time.time() - cputime,"s"
@@ -304,7 +293,7 @@ nb_train = dataN
 FNN = training(X_train,T_train,nb_train)
 plt.show()    
 
-"""    Testing    """
+
 Y = FNN.getOutput(X_train)
 right = 0
 count = np.zeros(8)
@@ -318,6 +307,8 @@ print right,"/",dataN
 print count
 
 
+"""    Testing    """
+
 #read test file
 ID,x = readtestfile("test.csv")
 print "read test file",time.time() - cputime,"s"
@@ -328,7 +319,7 @@ writer.writerow(["Id","Response"])
 lenx = len(x)
 X = np.matrix(x)
 Y = FNN.getOutput(X)
-for i in range(dataN):
+for i in range(lenx):
     out,v = softmax(Y[i])
     writer.writerow([ID[i],out+1])
 csvfile.close()
