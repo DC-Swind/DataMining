@@ -18,7 +18,11 @@ def softmax(y):
     maxv = -1.0
     maxi = -1
     for i in range(l):
+<<<<<<< HEAD
         if y[i] > maxv:
+=======
+        if y[i] > max:
+>>>>>>> origin/master
             maxv = y[i]
             maxi = i
     return maxi,maxv
@@ -40,7 +44,10 @@ class Sigmoid(object):
     
     def cost(self, Y, T):
         return np.sum(abs(Y-T))/(Y.shape[0] * Y.shape[1])
+<<<<<<< HEAD
         #return np.sum(np.multiply(Y-T,Y-T))/(Y.shape[0] * Y.shape[1])
+=======
+>>>>>>> origin/master
 
 class TanH(object):
     """TanH applies the tanh function to its inputs. I always use this layer after any linear layer. """
@@ -76,6 +83,7 @@ class FeedfowardNN:
     def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
         """Initialize the network layers."""
         self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
+<<<<<<< HEAD
         self.layer2 = Linearlayer(nb_of_states, nb_of_outputs)  # Hidden layer
         self.tanh = TanH()  #no-linear function
         self.classifier = Sigmoid()  # Sigmoid output as classifier
@@ -140,24 +148,50 @@ class FeedfowardNN3:
         self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
         self.layer2 = Linearlayer(nb_of_states, nb_of_states)  # Hidden layer
         self.layer3 = Linearlayer(nb_of_states, nb_of_outputs)
+=======
+        self.layer2 = Linearlayer(nb_of_states, nb_of_states)  # Hidden layer
+        self.layer3 = Linearlayer(nb_of_states, nb_of_outputs)  # Output layer
+>>>>>>> origin/master
         self.tanh = TanH()  #no-linear function
         self.classifier = Sigmoid()  # Sigmoid output as classifier
         
     def forward(self, X):
         Z1 = self.layer1.forward(X)
+<<<<<<< HEAD
         Y1 = self.tanh.forward(Z1)
         Z2 = self.layer2.forward(Y1)
         Y2 = self.tanh.forward(Z2)
         Z3 = self.layer3.forward(Y2)
+=======
+        #print Z1[0]
+        #print Z1[1]
+        Y1 = self.tanh.forward(Z1)
+        #print Y1[0]
+        #print Y1[1]
+        Z2 = self.layer2.forward(Y1)
+        Y2 = self.tanh.forward(Z2)
+        #print Y2[0]
+        Z3 = self.layer3.forward(Y1)
+>>>>>>> origin/master
         Y = self.classifier.forward(Z3) 
         return Z1, Y1, Z2, Y2, Z3, Y
      
     
+<<<<<<< HEAD
     def backward(self, X, Y, Z3, Y2, Z2, Y1, Z1, T):
         gZ3 = self.classifier.backward(Y, T)
         gY2, gW3, gB3 = self.layer3.backward(Y2, gZ3)
         gZ2 = self.tanh.backward(Y2, gY2)
         gY1, gW2, gB2 = self.layer2.backward(Y1, gZ2)
+=======
+    def backward(self, X, Y, Z3, Z2, Y2, Z1, Y1, T):
+        gZ3 = self.classifier.backward(Y, T)
+        gY2, gW3, gB3 = self.layer3.backward(Y2, gZ3)
+        self.gw3 = gW3
+        gZ2 = self.tanh.backward(Y2, gY2)
+        gY1, gW2, gB2 = self.layer2.backward(Y1, gZ2)
+        
+>>>>>>> origin/master
         gZ1 = self.tanh.backward(Y1, gY1)
         gX, gW1, gB1 = self.layer1.backward(X, gZ1)
         
@@ -177,7 +211,11 @@ class FeedfowardNN3:
         The list has the same order as the get_params_iter iterator."""
         
         Z1, Y1, Z2, Y2, Z3, Y = self.forward(X)
+<<<<<<< HEAD
         gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z3, Y2, Z2, Y1, Z1, T)
+=======
+        gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z3, Z2, Y2, Z1, Y1, T)
+>>>>>>> origin/master
         return [g for g in itertools.chain(
                 np.nditer(gW3),
                 np.nditer(gB3),
@@ -203,12 +241,18 @@ class FeedfowardNN3:
             np.nditer(self.layer2.b, op_flags=['readwrite']),
             np.nditer(self.layer1.W, op_flags=['readwrite']), 
             np.nditer(self.layer1.b, op_flags=['readwrite']))
+<<<<<<< HEAD
 
+=======
+    
+    
+>>>>>>> origin/master
 
 def training(X_train,T_train,nb_train):
     """    Training    """
     # Set hyper-parameters
     lmbd = 0.5  # Rmsprop lambda
+<<<<<<< HEAD
     learning_rate = 0.0001  # Learning rate
     momentum_term = 0.80  # Momentum term
     eps = 1e-12  # Numerical stability term to prevent division by zero
@@ -217,6 +261,16 @@ def training(X_train,T_train,nb_train):
     # Create the network
     nb_of_states = 100  # Number of states in the recurrent layer
     FNN = FeedfowardNN3(featureN,8,nb_of_states)
+=======
+    learning_rate = 0.00005  # Learning rate
+    momentum_term = 0.80  # Momentum term
+    eps = 1e-12  # Numerical stability term to prevent division by zero
+    mb_size = 59380  # Size of the minibatches (number of samples)
+
+    # Create the network
+    nb_of_states = 10  # Number of states in the recurrent layer
+    FNN = FeedfowardNN(featureN,8,nb_of_states)
+>>>>>>> origin/master
 
     # Set the initial parameters
     nbParameters =  sum(1 for _ in FNN.get_params_iter())  # Number of parameters in the network
@@ -226,7 +280,11 @@ def training(X_train,T_train,nb_train):
     #test information
     cputime = time.time()
     yw = []
+<<<<<<< HEAD
     ywn = 0
+=======
+    ywn = 10
+>>>>>>> origin/master
     for i in range(ywn):
         yw.append([])
     ye = []
@@ -234,7 +292,11 @@ def training(X_train,T_train,nb_train):
     index = 0
 
     # Iterate over some iterations
+<<<<<<< HEAD
     for i in range(5):
+=======
+    for i in range(500):
+>>>>>>> origin/master
         # Iterate over all the mini-batches
         for mb in range(nb_train/mb_size):
             X_mb = X_train[mb * mb_size:min((mb + 1) * mb_size,dataN-1),:]  # Input mini-batch
@@ -273,7 +335,11 @@ def training(X_train,T_train,nb_train):
     for i in range(ywn):
         plt.plot(x,yw[i])
         plt.xlabel(i)
+<<<<<<< HEAD
         plt.figure("parameter"+str(i))
+=======
+        plt.figure()
+>>>>>>> origin/master
     return FNN
 
 
@@ -324,6 +390,7 @@ csvfile.close()
 
 Y = FNN.getOutput(X_train)
 right = 0
+<<<<<<< HEAD
 count = np.zeros(8)
 for i in range(dataN):
     out,v = softmax(Y[i])
@@ -333,3 +400,12 @@ for i in range(dataN):
     count[out] += 1
 print right,"/",dataN
 print count
+=======
+for i in range(dataN):
+    #print Y[i]
+    out = softmax(Y[i])
+    if out == y[i]:
+        right += 1
+        
+print right
+>>>>>>> origin/master
