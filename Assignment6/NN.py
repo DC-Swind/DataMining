@@ -183,7 +183,7 @@ eps = 1e-6  # Numerical stability term to prevent division by zero
 mb_size = 100  # Size of the minibatches (number of samples)
 
 # Create the network
-nb_of_states = 200  # Number of states in the recurrent layer
+nb_of_states = 10  # Number of states in the recurrent layer
 FNN = FeedfowardNN(featureN,8,nb_of_states)
 
 # Set the initial parameters

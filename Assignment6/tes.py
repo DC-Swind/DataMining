@@ -1,7 +1,7 @@
 import numpy
 from numpy import *
 import random
-
+import matplotlib.pyplot as plt
 
 def init():
     indexs = random.sample(range(0,1000),8)
@@ -44,3 +44,4 @@ for rr in [50,25]:
     for i in range(1,40):
         sigma = i * 0.5
         print rr,sigma
+        
