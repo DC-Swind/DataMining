@@ -72,7 +72,7 @@ class Linearlayer:
 
 
 class FeedfowardNN:
-    """Feed forward FNNdropout."""
+    """Feed forward NN."""
     def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
         """Initialize the network layers."""
         self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
@@ -129,7 +129,7 @@ class FeedfowardNN:
             np.nditer(self.layer1.b, op_flags=['readwrite']))
     
 class FeedfowardNN3:
-    """Feed forward FNNdropout."""
+    """Feed forward NN."""
     def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
         """Initialize the network layers."""
         self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer

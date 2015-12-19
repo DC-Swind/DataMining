@@ -4,6 +4,7 @@ import numpy
 import random
 import time
 from numpy import matrix
+from PCA import PCA, PCA_Transform
 import os
 import csv
 
@@ -117,7 +118,7 @@ def kernelize(x,l,sigma2):
 #main entry and setting
 def main(x,y,dataN,featureN,sigma,ln):
     numpy.random.seed(seed=1) 
-    lamda = 0.00005
+    lamda = 0.00003
     sigma2 = sigma
 
     
@@ -220,10 +221,18 @@ def main(x,y,dataN,featureN,sigma,ln):
     print "right rate:",str(right)+"/"+str(dataN),float(right)/dataN
     return w8,max8,l,float(right)/dataN
 
+
+
+
+"""  Entry  """
 #read file
 cputime = time.time()
 x,y = readfile("train.csv")
 print "reading train file",time.time() - cputime,"s"
+
+#PCA
+x, tfMatrix , recon = PCA(x, 100)
+
 cputime = time.time()
 dataN = len(x)
 featureN = len(x[0])
@@ -240,7 +249,8 @@ max8 = []
 l = []
 sigma = 0.0
 maxrightrate = 0.0
-for i in range(10):
+for i in range(5):
+    print "the",i+1,"rd time"
     r = random.random()
     w8i,max8i,li,rightrate = main(x,y,dataN,featureN,1.40 + r * 0.1,50)
     if rightrate > maxrightrate:
@@ -251,8 +261,13 @@ for i in range(10):
         sigma = 1.40 + r * 0.1
 
 
+cputime = time.time()
 ID,x = readtestfile("test.csv")
 print "read test file",time.time() - cputime,"s"
+
+#PCA Trans
+x = PCA_Transform(x, tfMatrix)
+
 cputime = time.time()
 csvfile = file(os.path.join(os.getcwd(), "ans.csv"),"wb")
 writer = csv.writer(csvfile)
