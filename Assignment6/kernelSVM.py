@@ -1,5 +1,4 @@
-from preprocess import readfile
-from preprocess import readtestfile
+from preprocessv2 import process
 import numpy
 import random
 import time
@@ -7,7 +6,7 @@ from numpy import matrix
 from PCA import PCA, PCA_Transform
 import os
 import csv
-
+import matplotlib.pyplot as plt
 
 def pegasos_log(x,y,lamda,T):
     dataN = len(x)
@@ -25,6 +24,14 @@ def pegasos_hinge(x,y,lamda,T):
     dataN = len(x)
     featureN = len(x[0])
     w = numpy.zeros(featureN)
+    
+    """
+    picx = []
+    for i in range(20):
+        picx.append(T/(20-i))
+    picy = []
+    index = 0
+    """
     for t in range(1,T+1):
         i = numpy.random.randint(0,dataN)
         yita = 1 / (lamda * t)
@@ -33,7 +40,16 @@ def pegasos_hinge(x,y,lamda,T):
             w = ( 1 - yita * lamda ) * w + yita * y[i] * x[i]
         else:
             w = ( 1 - yita * lamda ) * w
-        
+    """
+        if index < 20 and picx[index] == t:
+            right,error,callright,callerror,predict1,total1,max8i = test(x, y, w)
+            picy.append(float(error)/(error + right))
+            index += 1
+    plt.plot(picx, picy)
+    plt.xlabel("iterater times")
+    plt.ylabel("loss")
+    plt.show()
+    """
     return w
 
 def K(x1,x2):
@@ -124,10 +140,9 @@ def main(x,y,dataN,featureN,sigma,ln):
     
     cputime = time.time()
     #sample new features and kernelize
-    lN = dataN/ln
-    lindex = random.sample(range(0,dataN),lN)
+    lindex = random.sample(range(0,dataN),ln)
 
-    l = numpy.zeros((lN,featureN))
+    l = numpy.zeros((ln,featureN))
     for i in range(len(lindex)):
         l[i,:] = x[lindex[i],:]
 
@@ -156,6 +171,7 @@ def main(x,y,dataN,featureN,sigma,ln):
         xxx = numpy.zeros((dataN,featureN))
         index = 0
         yyy = []
+        #because +- is not equal, so choose 1/3 from -
         prob = float(N1)/(dataN - N1) * 4
         for j in range(dataN):
             if y[j] != i+1:
@@ -226,23 +242,18 @@ def main(x,y,dataN,featureN,sigma,ln):
 
 """  Entry  """
 #read file
-cputime = time.time()
-x,y = readfile("train.csv")
-print "reading train file",time.time() - cputime,"s"
+pr = process()
+x,y = pr.readtrainfile("train.csv")
+dataN = x.shape[0]
+featureN = x.shape[1]
+print "data",dataN,"feature",featureN
 
 #PCA
 x, tfMatrix , recon = PCA(x, 100)
+featureN = x.shape[1]
 
 cputime = time.time()
-dataN = len(x)
-featureN = len(x[0])
-print "initial dataN and featureN",dataN,featureN
-"""  
-for rr in [50,25]:
-    for i in range(11,19):
-        sigma = i * 0.1
-        main(x,y,dataN,featureN,sigma,rr)
-"""
+
 #sigma 1.4 ~ 1.5
 w8 = []
 max8 = []
@@ -252,7 +263,7 @@ maxrightrate = 0.0
 for i in range(5):
     print "the",i+1,"rd time"
     r = random.random()
-    w8i,max8i,li,rightrate = main(x,y,dataN,featureN,1.40 + r * 0.1,50)
+    w8i,max8i,li,rightrate = main(x,y,dataN,featureN,1.40 + r * 0.1,300)
     if rightrate > maxrightrate:
         maxrightrate = rightrate
         w8 = w8i
@@ -261,21 +272,22 @@ for i in range(5):
         sigma = 1.40 + r * 0.1
 
 
-cputime = time.time()
-ID,x = readtestfile("test.csv")
-print "read test file",time.time() - cputime,"s"
+
+
+#test
+ID,x = pr.readtestfile("test.csv")
 
 #PCA Trans
 x = PCA_Transform(x, tfMatrix)
 
 cputime = time.time()
-csvfile = file(os.path.join(os.getcwd(), "ans.csv"),"wb")
+csvfile = file(os.path.join(os.getcwd(), "svmans.csv"),"wb")
 writer = csv.writer(csvfile)
 writer.writerow(["Id","Response"])
 
 x,featureN = kernelize(x,l,sigma)
 
-dataN = len(x)
+dataN = x.shape[0]
 for i in range(dataN):
     maxv = 0
     maxj = -1

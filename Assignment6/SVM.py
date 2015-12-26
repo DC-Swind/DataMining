@@ -1,5 +1,5 @@
-from preprocess import readfile
-from preprocess import readtestfile
+from preprocessv1 import readfile
+from preprocessv1 import readtestfile
 import numpy
 import random
 import time

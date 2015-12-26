@@ -5,11 +5,15 @@
 
 import numpy as np
 from Crypto.Random.random import randint
+import random
 import itertools
 import time
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
-from preprocess import readfile
-from preprocess import readtestfile
+from matplotlib.pyplot import savefig
+from preprocessv2 import process
 import os
 import csv
 
@@ -54,86 +58,41 @@ class TanH(object):
         return np.multiply(gTanh, output_grad)
         
 class Linearlayer:
-    def __init__(self,n_in,n_out):
+    def __init__(self,n_in,n_out,dropout = 0):
         """ This random initial is recommend by ... Sorry, I forgot his name. """
         a = np.sqrt(6.0 / (n_in + n_out))
         self.W = np.random.uniform(-a, a, (n_in, n_out))
         self.b = np.zeros((n_out))
+        self.n_in = n_in
+        self.n_out = n_out
+        self.dropout = dropout
         
     def forward(self, X):
         """X is n*f, w is f * h."""
-        return np.tensordot(X, self.W, axes=(-1,0)) + self.b
+        self.Drop = np.round(np.random.uniform(0,1,self.n_out))
+        W = self.W
+        b = self.b
+        if self.dropout == 1:
+            W = np.multiply(self.W,self.Drop)
+            b = np.multiply(self.b,self.Drop)
+        return np.tensordot(X, W, axes=(-1,0)) + b
 
     def backward(self, X, gY):
         gW = np.tensordot(X, gY, axes=(0, 0))
         gB = np.sum(gY, 0)
         gX = np.tensordot(gY, self.W, axes=(-1,-1))  
+        if self.dropout == 1:
+            gW = np.multiply(gW, self.Drop)
+            gB = np.multiply(gB, self.Drop)
+            gX = np.tensordot(gY, np.multiply(self.W,self.Drop), axes=(-1,-1))
         return gX, gW, gB
-
-
-class FeedfowardNN:
-    """Feed forward NN."""
-    def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
-        """Initialize the network layers."""
-        self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
-        self.layer2 = Linearlayer(nb_of_states, nb_of_outputs)  # Hidden layer
-        self.tanh = TanH()  #no-linear function
-        self.classifier = Sigmoid()  # Sigmoid output as classifier
-        
-    def forward(self, X):
-        Z1 = self.layer1.forward(X)
-        Y1 = self.tanh.forward(Z1)
-        Z2 = self.layer2.forward(Y1)
-        Y = self.classifier.forward(Z2) 
-        return Z1, Y1, Z2, Y
-     
-    
-    def backward(self, X, Y, Z2, Y1, Z1, T):
-        gZ2 = self.classifier.backward(Y, T)
-        gY1, gW2, gB2 = self.layer2.backward(Y1, gZ2)
-        gZ1 = self.tanh.backward(Y1, gY1)
-        gX, gW1, gB1 = self.layer1.backward(X, gZ1)
-        
-        return gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1
-    
-    def getOutput(self, X):
-        Z1, Y1, Z2, Y = self.forward(X)
-        return Y  # Only return the output.
-    
-    def getBinaryOutput(self, X):
-        return np.around(self.getOutput(X))
-    
-    def getParamGrads(self, X, T):
-        """Return the gradients with respect to input X and target T as a list.
-        The list has the same order as the get_params_iter iterator."""
-        Z1, Y1, Z2, Y = self.forward(X)
-        gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z2, Y1, Z1, T)
-        return [g for g in itertools.chain(
-                np.nditer(gW2),
-                np.nditer(gB2),
-                np.nditer(gW1),
-                np.nditer(gB1))]
-        
-    def cost(self, Y, T):
-        """Return the cost of input X w.r.t. targets T."""
-        return self.classifier.cost(Y, T)
-    
-    def get_params_iter(self):
-        """Return an iterator over the parameters.
-        The iterator has the same order as get_params_grad.
-        The elements returned by the iterator are editable in-place."""
-        return itertools.chain(
-            np.nditer(self.layer2.W, op_flags=['readwrite']),
-            np.nditer(self.layer2.b, op_flags=['readwrite']),
-            np.nditer(self.layer1.W, op_flags=['readwrite']), 
-            np.nditer(self.layer1.b, op_flags=['readwrite']))
     
 class FeedfowardNN3:
     """Feed forward NN."""
-    def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states):
+    def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states, dropout = 0):
         """Initialize the network layers."""
-        self.layer1 = Linearlayer(nb_of_inputs, nb_of_states)  # Input layer
-        self.layer2 = Linearlayer(nb_of_states, nb_of_states/2)  # Hidden layer
+        self.layer1 = Linearlayer(nb_of_inputs, nb_of_states, dropout)  # Input layer
+        self.layer2 = Linearlayer(nb_of_states, nb_of_states/2, dropout)  # Hidden layer
         self.layer3 = Linearlayer(nb_of_states/2, nb_of_outputs)
         self.tanh = TanH()  #no-linear function
         self.classifier = Sigmoid()  # Sigmoid output as classifier
@@ -169,13 +128,7 @@ class FeedfowardNN3:
         The list has the same order as the get_params_iter iterator."""
         Z1, Y1, Z2, Y2, Z3, Y = self.forward(X)
         gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z3, Y2, Z2, Y1, Z1, T)
-        return [g for g in itertools.chain(
-                np.nditer(gW3),
-                np.nditer(gB3),
-                np.nditer(gW2),
-                np.nditer(gB2),
-                np.nditer(gW1),
-                np.nditer(gB1))]
+        return [gW3,gB3,gW2,gB2,gW1,gB1]
         
         
     def cost(self, Y, T):
@@ -186,50 +139,48 @@ class FeedfowardNN3:
         """Return an iterator over the parameters.
         The iterator has the same order as get_params_grad.
         The elements returned by the iterator are editable in-place."""
-        return itertools.chain(
-            np.nditer(self.layer3.W, op_flags=['readwrite']),
-            np.nditer(self.layer3.b, op_flags=['readwrite']),
-            np.nditer(self.layer2.W, op_flags=['readwrite']),
-            np.nditer(self.layer2.b, op_flags=['readwrite']),
-            np.nditer(self.layer1.W, op_flags=['readwrite']), 
-            np.nditer(self.layer1.b, op_flags=['readwrite']))
+        return [self.layer3.W, self.layer3.b, self.layer2.W, self.layer2.b, self.layer1.W, self.layer1.b]
 
+def minibatch_sample(X_train, T_train, mb_size):
+    samples = np.sort(random.sample(range(0,X_train.shape[0]),mb_size))
+    X_mb = np.zeros_like(X_train[0:mb_size])
+    T_mb = np.zeros_like(T_train[0:mb_size])
+    for i in range(mb_size):
+        X_mb[i] = X_train[samples[i]]
+        T_mb[i] = T_train[samples[i]]
+    return X_mb, T_mb
 
-def training(X_train,T_train,nb_train):
+def training(X_train,T_train,nb_train,mb,regu,nb,dr):
     """    Training    """
     # Set hyper-parameters
     lmbd = 0.5  # Rmsprop lambda
     learning_rate = 0.0001  # Learning rate
     momentum_term = 0.80  # Momentum term
     eps = 1e-12  # Numerical stability term to prevent division by zero
-    mb_size = 128  # Size of the minibatches (number of samples)
+    mb_size = mb  # Size of the minibatches (number of samples)
+    regular_lamda = regu
 
     # Create the network
-    nb_of_states = 32  # Number of states in the recurrent layer
-    FNN = FeedfowardNN3(featureN,8,nb_of_states)
-
+    nb_of_states = nb  # Number of states in the recurrent layer
+    FNN = FeedfowardNN3(featureN,8,nb_of_states,dr)
+    outputfilename = "ans_mb"+str(mb_size)+"_regu"+str(regular_lamda)+"_state"+str(nb_of_states)+"_dr"+str(dr)+".csv"
+    
     # Set the initial parameters
-    nbParameters =  sum(1 for _ in FNN.get_params_iter())  # Number of parameters in the network
-    maSquare = [0.0 for _ in range(nbParameters)]  # Rmsprop moving average
-    Vs = [0.0 for _ in range(nbParameters)]  # Velocity
-
+    maSquare = [np.zeros_like(param) for param in FNN.get_params_iter()]  # Rmsprop moving average
+    Vs = [np.zeros_like(param) for param in FNN.get_params_iter()]  # Velocity
+    
     #test information
     cputime = time.time()
-    yw = []
-    ywn = 0
-    for i in range(ywn):
-        yw.append([])
     ye = []
     x = []
     index = 0
 
     # Iterate over some iterations
     for i in range(5):
-        print i+1,"rd epoch",
+        print i+1,"th epoch",
         # Iterate over all the mini-batches
         for mb in range(nb_train/mb_size):
-            X_mb = X_train[mb * mb_size:min((mb + 1) * mb_size,dataN-1),:]  # Input mini-batch
-            T_mb = T_train[mb * mb_size:min((mb + 1) * mb_size,dataN-1),:]  # Target mini batch
+            X_mb , T_mb = minibatch_sample(X_train, T_train, mb_size)
             V_tmp = [v * momentum_term for v in Vs]
 
             # Update each parameters according to previous gradient
@@ -242,87 +193,81 @@ def training(X_train,T_train,nb_train):
                 # Update the Rmsprop moving averages
                 maSquare[pIdx] = lmbd * maSquare[pIdx] + (1-lmbd) * backprop_grads[pIdx]**2
                 # Calculate the Rmsprop normalised gradient
-                pGradNorm = learning_rate * backprop_grads[pIdx] / np.sqrt(maSquare[pIdx] + eps)
+                pGradNorm = learning_rate * (backprop_grads[pIdx] +  regular_lamda * P/nb_train)/ np.sqrt(maSquare[pIdx] + eps)
                 # Update the momentum velocity
                 Vs[pIdx] = V_tmp[pIdx] - pGradNorm     
                 P -= pGradNorm   # Update the parameter
         
-
             x.append( index )
             ye.append(FNN.cost(FNN.getOutput(X_mb), T_mb ))
-            for i in range(ywn):
-                yw[i].append(FNN.gw3[i][0])
             index += 1
+
         print "    training time",time.time() - cputime,"s"
         cputime = time.time()
-     
-    plt.plot(x,ye)
-    plt.xlabel('iterater times')
-    plt.ylabel('loss')
-    #plt.ylim(0,1)
-    plt.figure()
-    for i in range(ywn):
-        plt.plot(x,yw[i])
-        plt.xlabel(i)
-        plt.figure("parameter"+str(i))
-    return FNN
+    
+    plt.plot(x, ye)
+    plt.xlabel("iterater times")
+    plt.ylabel("loss")
+    #plt.show()
+    savefig("ans/"+outputfilename+".jpg")
+    return FNN,outputfilename
 
 
 
 """    Entry    """
 #read file
-cputime = time.time()
-x,y = readfile("train.csv")
-print "read train file",time.time() - cputime,"s"
-cputime = time.time()
-dataN = len(x)
-featureN = len(x[0])
-print dataN,featureN
-
+pr = process()
+x,y = pr.readtrainfile("train.csv")
+dataN = x.shape[0]
+featureN = x.shape[1]
+print "data",dataN,"feature",featureN
 
 #change 1-8 to one hot of [0,0,0,0,0,0,0,0]
 Y = np.zeros((dataN,8))
 for i in range(dataN):
     Y[i][y[i] - 1] = 1
 
-
 X_train = x
 T_train = Y
 nb_train = dataN
 
+mb = [64,64]
+regu = [5.0,0.0]
+nb = [128,128]
+dr = [0,1]
 
-FNN = training(X_train,T_train,nb_train)
-plt.show()    
+for i in range(len(mb)):
+    runninglog = open('log.txt','a+')
+    FNN, filename = training(X_train,T_train,nb_train,mb[i],regu[i],nb[i],dr[i])
+    Y = FNN.getOutput(X_train)
+    right = 0
+    count = np.zeros(8)
+    for i in range(dataN):
+        out,v = softmax(Y[i])
+        #print Y[i],out+1,y[i],v
+        if out+1 == y[i]:
+            right += 1
+        count[out] += 1
+    print right,"/",dataN
+    print np.around(count)
+    runninglog.write(filename+"\n")
+    runninglog.write(str(right)+"/"+str(dataN)+"\n")
+    for i in range(8):
+        runninglog.write(str(round(count[i]))+" ")
+    runninglog.write("\n"+"---------------------------------"+"\n")
+    
+    """    Testing    """
 
-
-Y = FNN.getOutput(X_train)
-right = 0
-count = np.zeros(8)
-for i in range(dataN):
-    out,v = softmax(Y[i])
-    #print Y[i],out+1,y[i],v
-    if out+1 == y[i]:
-        right += 1
-    count[out] += 1
-print right,"/",dataN
-print count
-
-
-"""    Testing    """
-
-#read test file
-ID,x = readtestfile("test.csv")
-print "read test file",time.time() - cputime,"s"
-cputime = time.time()
-csvfile = file(os.path.join(os.getcwd(), "ans.csv"),"wb")
-writer = csv.writer(csvfile)
-writer.writerow(["Id","Response"])
-lenx = len(x)
-X = np.matrix(x)
-Y = FNN.getOutput(X)
-for i in range(lenx):
-    out,v = softmax(Y[i])
-    writer.writerow([ID[i],out+1])
-csvfile.close()
-
-
+    #read test file
+    ID,x = pr.readtestfile("test.csv")
+    csvfile = file(os.path.join(os.getcwd(), "ans/"+filename),"wb")
+    writer = csv.writer(csvfile)
+    writer.writerow(["Id","Response"])
+    lenx = x.shape[0]
+    X = x
+    Y = FNN.getOutput(X)
+    for i in range(lenx):
+        out,v = softmax(Y[i])
+        writer.writerow([ID[i],out+1])
+    csvfile.close()
+    runninglog.close()
