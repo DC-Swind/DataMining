@@ -7,10 +7,14 @@ import numpy as np
 import random
 import itertools
 import time
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import savefig
 from preprocessv2 import process
 import os
 import csv
+from PCA import PCA, PCA_Transform
 
 def buji(A, n):
     B = []
@@ -143,7 +147,123 @@ class FeedfowardNN3:
     def get_params_iter(self):
         return [self.layer3.W, self.layer3.b, self.layer2.W, self.layer2.b, self.layer1.W, self.layer1.b]
 
+class FeedfowardNN4:
+    """Feed forward NN."""
+    def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states, dropout = 0):
+        """Initialize the network layers."""
+        self.layer1 = Linearlayer(nb_of_inputs, nb_of_states, dropout)  # Input layer
+        self.layer2 = Linearlayer(nb_of_states, nb_of_states/2, dropout)  # Hidden layer
+        self.layer3 = Linearlayer(nb_of_states/2, nb_of_states/2, dropout) # Hidden layer 2
+        self.layer4 = Linearlayer(nb_of_states/2, nb_of_outputs)
+        self.tanh = TanH()  #no-linear function
+        self.classifier = Sigmoid()  # Sigmoid output as classifier
+        
+    def forward(self, X):
+        Z1 = self.layer1.forward(X)
+        Y1 = self.tanh.forward(Z1)
+        Z2 = self.layer2.forward(Y1)
+        Y2 = self.tanh.forward(Z2)
+        Z3 = self.layer3.forward(Y2)
+        Y3 = self.tanh.forward(Z3)
+        Z4 = self.layer4.forward(Y3)
+        Y = self.classifier.forward(Z4) 
+        return Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y
+    
+    def backward(self, X, Y, Z4, Y3, Z3, Y2, Z2, Y1, Z1, T):
+        gZ4 = self.classifier.backward(Y, T)
+        gY3, gW4, gB4 = self.layer4.backward(Y3, gZ4)
+        gZ3 = self.tanh.backward(Y3, gY3)
+        gY2, gW3, gB3 = self.layer3.backward(Y2, gZ3)
+        gZ2 = self.tanh.backward(Y2, gY2)
+        gY1, gW2, gB2 = self.layer2.backward(Y1, gZ2)
+        gZ1 = self.tanh.backward(Y1, gY1)
+        gX, gW1, gB1 = self.layer1.backward(X, gZ1)
+        
+        return gZ4, gY3, gW4, gB4, gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1
+    
+    def getOutput(self, X):
+        Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y = self.forward(X)
+        return Y  # Only return the output.
+    
+    def getBinaryOutput(self, X):
+        return np.around(self.getOutput(X))
+    
+    def getParamGrads(self, X, T):
+        """Return the gradients with respect to input X and target T as a list.
+        The list has the same order as the get_params_iter iterator."""
+        Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y = self.forward(X)
+        gZ4, gY3, gW4, gB4, gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z4, Y3, Z3, Y2, Z2, Y1, Z1, T)
+        return [gW4,gB4,gW3,gB3,gW2,gB2,gW1,gB1]
+        
+        
+    def cost(self, Y, T):
+        """Return the cost of input X w.r.t. targets T."""
+        return self.classifier.cost(Y, T)
+    
+    def get_params_iter(self):
+        return [self.layer4.W, self.layer4.b, self.layer3.W, self.layer3.b, self.layer2.W, self.layer2.b, self.layer1.W, self.layer1.b]
 
+class FeedfowardNN5:
+    """Feed forward NN."""
+    def __init__(self, nb_of_inputs, nb_of_outputs, nb_of_states, dropout = 0):
+        """Initialize the network layers."""
+        self.layer1 = Linearlayer(nb_of_inputs, nb_of_states, dropout)  # Input layer
+        self.layer2 = Linearlayer(nb_of_states, nb_of_states/2, dropout)  # Hidden layer
+        self.layer3 = Linearlayer(nb_of_states/2, nb_of_states/2, dropout) # Hidden layer 2
+        self.layer4 = Linearlayer(nb_of_states/2, nb_of_states/2, dropout) # hidden layer 3 
+        self.layer5 = Linearlayer(nb_of_states/2, nb_of_outputs)
+        self.tanh = TanH()  #no-linear function
+        self.classifier = Sigmoid()  # Sigmoid output as classifier
+        
+    def forward(self, X):
+        Z1 = self.layer1.forward(X)
+        Y1 = self.tanh.forward(Z1)
+        Z2 = self.layer2.forward(Y1)
+        Y2 = self.tanh.forward(Z2)
+        Z3 = self.layer3.forward(Y2)
+        Y3 = self.tanh.forward(Z3)
+        Z4 = self.layer4.forward(Y3)
+        Y4 = self.tanh.forward(Z4)
+        Z5 = self.layer5.forward(Y4)
+        Y = self.classifier.forward(Z5) 
+        return Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y4, Z5, Y
+    
+    def backward(self, X, Y, Z5, Y4, Z4, Y3, Z3, Y2, Z2, Y1, Z1, T):
+        gZ5 = self.classifier.backward(Y, T)
+        gY4, gW5, gB5 = self.layer5.backward(Y4, gZ5)
+        gZ4 = self.tanh.backward(Y4, gY4)
+        gY3, gW4, gB4 = self.layer4.backward(Y3, gZ4)
+        gZ3 = self.tanh.backward(Y3, gY3)
+        gY2, gW3, gB3 = self.layer3.backward(Y2, gZ3)
+        gZ2 = self.tanh.backward(Y2, gY2)
+        gY1, gW2, gB2 = self.layer2.backward(Y1, gZ2)
+        gZ1 = self.tanh.backward(Y1, gY1)
+        gX, gW1, gB1 = self.layer1.backward(X, gZ1)
+        
+        return gZ5, gY4, gW5, gB5, gZ4, gY3, gW4, gB4, gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1
+    
+    def getOutput(self, X):
+        Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y4, Z5, Y = self.forward(X)
+        return Y  # Only return the output.
+    
+    def getBinaryOutput(self, X):
+        return np.around(self.getOutput(X))
+    
+    def getParamGrads(self, X, T):
+        """Return the gradients with respect to input X and target T as a list.
+        The list has the same order as the get_params_iter iterator."""
+        Z1, Y1, Z2, Y2, Z3, Y3, Z4, Y4, Z5, Y = self.forward(X)
+        gZ5, gY4, gW5, gB5, gZ4, gY3, gW4, gB4, gZ3, gY2, gW3, gB3, gZ2, gY1, gW2, gB2, gZ1, gX, gW1, gB1 = self.backward(X, Y, Z5, Y4, Z4, Y3, Z3, Y2, Z2, Y1, Z1, T)
+        return [gW5,gB5,gW4,gB4,gW3,gB3,gW2,gB2,gW1,gB1]
+        
+        
+    def cost(self, Y, T):
+        """Return the cost of input X w.r.t. targets T."""
+        return self.classifier.cost(Y, T)
+    
+    def get_params_iter(self):
+        return [self.layer5.W,self.layer5.b,self.layer4.W, self.layer4.b, self.layer3.W, self.layer3.b, self.layer2.W, self.layer2.b, self.layer1.W, self.layer1.b]
+       
 def minibatch_sample(X_train, T_train, mb_size):
     samples = np.sort(random.sample(range(0,X_train.shape[0]),mb_size))
     X_mb = np.zeros_like(X_train[0:mb_size])
@@ -160,12 +280,12 @@ def training(X_train,T_train,nb_train):
     learning_rate = 0.0001  # Learning rate
     momentum_term = 0.80  # Momentum term
     eps = 1e-12  # Numerical stability term to prevent division by zero
-    mb_size = 128  # Size of the minibatches (number of samples)
+    mb_size = 32  # Size of the minibatches (number of samples)
     regular_lamda = 0.0
 
     # Create the network
-    nb_of_states = 128  # Number of states in the recurrent layer
-    FNN = FeedfowardNN3(featureN,8,nb_of_states,0)
+    nb_of_states = 256  # Number of states in the recurrent layer
+    FNN = FeedfowardNN4(featureN,8,nb_of_states,0)
     outputfilename = "ans_mb"+str(mb_size)+"_regu"+str(regular_lamda)+"_state"+str(nb_of_states)+".csv"
     
     # Set the initial parameters
@@ -179,7 +299,7 @@ def training(X_train,T_train,nb_train):
     index = 0
 
     # Iterate over some iterations
-    for i in range(5):
+    for i in range(2):
         print i+1,"th epoch",
         # Iterate over all the mini-batches
         for mb in range(nb_train/mb_size):
@@ -207,13 +327,13 @@ def training(X_train,T_train,nb_train):
             ye.append(FNN.cost(FNN.getOutput(X_mb), T_mb ))
             index += 1
 
-        learning_rate *= 0.2
+        #learning_rate *= 0.3
         print "    training time",time.time() - cputime,"s"
         cputime = time.time()
     
-    #plt.plot(x, ye)
-    #plt.xlabel("iterater times")
-    #plt.ylabel("loss")
+    plt.plot(x, ye)
+    plt.xlabel("iterater times")
+    plt.ylabel("loss")
     #plt.show()
     return FNN,outputfilename
 
@@ -226,6 +346,12 @@ x,y = pr.readtrainfile("train.csv")
 dataN = x.shape[0]
 featureN = x.shape[1]
 print "data",dataN,"feature",featureN
+
+
+#PCA
+x, tfMatrix , recon = PCA(x, 100)
+featureN = x.shape[1]
+
 
 #change 1-8 to one hot of [0,0,0,0,0,0,0,0]
 Y = np.zeros((dataN,8))
@@ -254,7 +380,7 @@ print np.round(count)
 
 bestFNN = 0
 bestright = 0
-for i in range(10):
+for i in range(3):
     print "cross",i+1,"    "
     nb_test = x.shape[0]/10
     nb_train = x.shape[0] - nb_test
@@ -270,33 +396,53 @@ for i in range(10):
     FNN, filename = training(X_train, T_train, nb_train)
     Y_test = FNN.getOutput(X_test)
     right = 0
-    count = np.zeros(8)
+    count = [0] * 8
+    callback = [[0 for i in range(8)] for j in range(8)]
     for i in range(nb_test):
         out1,v1 = softmax(Y_test[i])
         out2,v2 = softmax(T_test[i])
         #print Y[i],out+1,y[i],v
         if out1 == out2:
             right += 1
+        callback[out1][out2] += 1
         count[out1] += 1
     if right > bestright:
         bestright = right
         bestFNN = FNN
     print right,"/",nb_test
-    print np.round(count)
+    print count
+    print np.matrix(callback)
 print "best right is ",bestright
+
+
+savefig("loss.jpg")
 
 """    Testing    """
 #read test file
 ID,x = pr.readtestfile("test.csv")
+
+
+#PCA Trans
+x = PCA_Transform(x, tfMatrix)
+
+
 csvfile = file(os.path.join(os.getcwd(), filename),"wb")
 writer = csv.writer(csvfile)
 writer.writerow(["Id","Response"])
 lenx = x.shape[0]
 X = x
 Y = bestFNN.getOutput(X)
+count = [0] * 8
 for i in range(lenx):
     out,v = softmax(Y[i])
+    count[out] += 1
+    """
+    #important 
+    if out == 2:
+        out = 1
+    """
     writer.writerow([ID[i],out+1])
+print count
 csvfile.close()
 
 print "-----------------------------------------------"
